@@ -18,7 +18,8 @@ ui <- fluidPage(
                     accept = c("text/plain",
                                ".txt")),
           numericInput("dilutionFactor", 'Dilution factor:', value=1, min=0.0001),
-          downloadButton("downloadData", "Download reformatted data")
+          radioButtons('sep', 'Decimal separator', c('.', ',')),
+          uiOutput('downloadUI')
         ),
         mainPanel(
           tableOutput("contents")
@@ -27,7 +28,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  output$intro <- renderUI({ HTML(paste(c("This application reformats compound summary files from Agilent Chemstation.",
+  output$intro <- renderUI({ HTML(paste(c("This application reformats <b>compound summary</b> files from Agilent Chemstation.",
                                        "Data will be transformed from long to wide, and a dilution factor applied to all samples",
                                        "Upload your GLPrprt.txt file below to begin."), collapse='<br><br>')) })
 
@@ -49,10 +50,21 @@ server <- function(input, output) {
       sub('.txt$', '-wide.csv', input$file1$name, input$dilutionFactor)
     },
     content = function(file) {
-      write.csv2(format_hplc_file(input$file1$datapath, input$dilutionFactor), file, 
-                 row.names=F, na='')
+      if(input$sep == ',') {
+        write.csv2(format_hplc_file(input$file1$datapath, input$dilutionFactor), file, 
+                   row.names=F, na='')
+      } else {
+        write.csv(format_hplc_file(input$file1$datapath, input$dilutionFactor), file, 
+                  row.names=F, na='')
+      }
     }
   )
+  
+  output$downloadUI <- renderUI({
+    if(!is.null(input$file1$name)) {
+      downloadButton("downloadData", "Download reformatted data")
+    }
+  })
 }
 
 format_hplc_file <- function(fname, dil_fac) {
