@@ -89,6 +89,7 @@ format_hplc_file <- function(fname, dil_fac) {
   # strip unnecessary whitespace
   data$Compound <- sub(' *$', '', data$Compound)
   data$SampleName <- sub(' *$', '', data$SampleName)
+  samples <- unique(data$SampleName)
   
   data <- data[data$Compound != '-',]
   
@@ -101,9 +102,17 @@ format_hplc_file <- function(fname, dil_fac) {
   data <- data %>% remove_constant %>% remove_empty
   data <- data %>% pivot_wider(names_from = Compound, values_from=Amount)
   data <- data[!is.na(data$SampleName),]
-  names(data) <- to_any_case(names(data), case='title', sep_in=' ')
   
-  data
+  # retain empty samples
+  empty_samples <- samples[! samples %in% data$SampleName]
+  if (length(empty_samples) > 0) {
+    es_mtx <- matrix(nrow=length(empty_samples), ncol=ncol(data))
+    es_mtx[,1] <- empty_samples
+    colnames(es_mtx) <- colnames(data)
+    data <- rbind(data, as.data.frame(es_mtx))
+  }
+  names(data) <- to_any_case(names(data), case='title', sep_in=' ')
+  data %>% arrange(`Sample Name`)
 }
 
 # Run the application 
